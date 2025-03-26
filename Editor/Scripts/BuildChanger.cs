@@ -154,7 +154,7 @@ consoleCatcher.innerHTML += ""<br>"";
             }
         }
         if (!isHtmlContainsMainPart)
-            html = html.Insert(html.IndexOf("</body>") - 3, _mainPartOfAdditiveText);
+            html = html.Insert(html.IndexOf("</body>") - 1, _mainPartOfAdditiveText);
 
         if (!isHtmlContainsConsoleLogPart)
             html = html.Insert(html.IndexOf("//console.log easy debug"), _isNeedToDebugLog ? _consoleLogAdditiveText : "");
