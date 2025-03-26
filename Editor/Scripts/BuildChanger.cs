@@ -16,7 +16,7 @@ public class BuildChanger : IPostprocessBuildWithReport, IPreprocessBuildWithRep
     private const string _mainPartOfAdditiveText = @"
 <!--Main part of additive text started-->
 <img
-      src=""./TemplateData/RoundButton.png""
+      src=""./RoundButton.png""
       id = ""round-button""
       style=""
       position: fixed;
@@ -24,6 +24,7 @@ public class BuildChanger : IPostprocessBuildWithReport, IPreprocessBuildWithRep
       height: auto;
       bottom: 10%;
       user-select:none;
+      z-index: 1;
       ""
       onclick=""show()""
     />
@@ -39,11 +40,12 @@ public class BuildChanger : IPostprocessBuildWithReport, IPreprocessBuildWithRep
         bottom: 15%;
         left: 12%;
         opacity: 0;
+        z-index: 1;
       ""
     ></div>
     <script>
       const consoleCatcher = document.getElementById(""console-catcher"");
-    const roundButton = document.getElementById(""round-button"");
+      const roundButton = document.getElementById(""round-button"");
 
 //console.log easy debug
 //console.error easy debug
@@ -147,14 +149,23 @@ consoleCatcher.innerHTML += ""<br>"";
             {
                 File.WriteAllText(report.summary.outputPath + "/index.html", html);
 
-                if (File.Exists(report.summary.outputPath + "/TemplateData/RoundButton.png"))
-                    File.Delete(report.summary.outputPath + "/TemplateData/RoundButton.png");
+                if (File.Exists(report.summary.outputPath + "/RoundButton.png"))
+                    File.Delete(report.summary.outputPath + "/RoundButton.png");
 
                 return;
             }
         }
+
+        if (!IsNeedToCreateChanges())
+        {
+            if (File.Exists(report.summary.outputPath + "/RoundButton.png"))
+                File.Delete(report.summary.outputPath + "/RoundButton.png");
+
+            return;
+        }
+
         if (!isHtmlContainsMainPart)
-            html = html.Insert(html.IndexOf("</body>") - 1, _mainPartOfAdditiveText);
+            html = html.Insert(html.IndexOf("<head>") + 6, _mainPartOfAdditiveText);
 
         if (!isHtmlContainsConsoleLogPart)
             html = html.Insert(html.IndexOf("//console.log easy debug"), _isNeedToDebugLog ? _consoleLogAdditiveText : "");
@@ -168,8 +179,8 @@ consoleCatcher.innerHTML += ""<br>"";
         if (html.GetHashCode() != previousHtmlHashCode)
             File.WriteAllText(report.summary.outputPath + "/index.html", html);
 
-        if (!File.Exists(report.summary.outputPath + "/TemplateData/RoundButton.png"))
-            File.Copy(Application.dataPath + "/EasyConsoleDebuggingWebGL/Editor/Images/RoundButton.png", report.summary.outputPath + "/TemplateData/RoundButton.png");
+        if (!File.Exists(report.summary.outputPath + "/RoundButton.png"))
+            File.Copy(Application.dataPath + "/EasyConsoleDebuggingWebGL/Editor/Images/RoundButton.png", report.summary.outputPath + "/RoundButton.png");
     }
 
     private bool IsNeedToCreateChanges()
