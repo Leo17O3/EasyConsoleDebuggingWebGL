@@ -66,8 +66,7 @@ public class BuildChanger : IPostprocessBuildWithReport, IPreprocessBuildWithRep
     function rotate()
     {
         currentDegrees = (currentDegrees + 180) % 360;
-        roundButton.style.transform = `rotate(${ currentDegrees}
-        deg)`;
+        roundButton.style.transform = `rotate(${currentDegrees}deg)`;
     }
     </script>
 <!--Main part of additive text finished-->";
