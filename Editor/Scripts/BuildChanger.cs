@@ -5,7 +5,7 @@ using UnityEditor;
 using System.IO;
 using UnityEngine;
 
-public class BuildChanger : IPostprocessBuildWithReport
+public class BuildChanger : IPostprocessBuildWithReport, IPreprocessBuildWithReport
 {
     public int callbackOrder { get => 0; }
 
@@ -14,7 +14,7 @@ public class BuildChanger : IPostprocessBuildWithReport
     private bool _isNeedToDebugWarn;
 
     private const string _mainPartOfAdditiveText = @"
-//Main part of additive text started
+<!--Main part of additive text started-->
 <img
       src=""./TemplateData/RoundButton.png""
       id = ""round-button""
@@ -23,6 +23,7 @@ public class BuildChanger : IPostprocessBuildWithReport
     max-width: 10%;
       height: auto;
       bottom: 10%;
+      user-select:none;
       ""
       onclick=""show()""
     />
@@ -67,7 +68,7 @@ public class BuildChanger : IPostprocessBuildWithReport
         deg)`;
     }
     </script>
-//Main part of additive text finished";
+<!--Main part of additive text finished-->";
 
     private const string _consoleLogAdditiveText = @"
 const previousConsoleLog = console.log;
@@ -105,37 +106,67 @@ consoleCatcher.innerHTML += ""<br>"";
         previousConsoleWarn(...data);
       };";
 
+    private string _tempRoundButtonPath = Path.GetDirectoryName(Application.dataPath) + "/RoundButton.png";
+
+    public void OnPreprocessBuild(BuildReport report)
+    {
+        File.Move(Application.dataPath + "/EasyConsoleDebuggingWebGL/Editor/Images/RoundButton.png", _tempRoundButtonPath);
+    }
 
     public void OnPostprocessBuild(BuildReport report)
     {
+        File.Move(_tempRoundButtonPath, Application.dataPath + "/EasyConsoleDebuggingWebGL/Editor/Images/RoundButton.png");
+
         _isNeedToDebugLog = EditorPrefs.GetBool("IsNeedToDebugLog", false);
         _isNeedToDebugError = EditorPrefs.GetBool("IsNeedToDebugError", false);
         _isNeedToDebugWarn = EditorPrefs.GetBool("IsNeedToDebugWarn", false);
 
         string html = File.ReadAllText(report.summary.outputPath + "/index.html");
+        int previousHtmlHashCode = html.GetHashCode();
 
-        if (html.Contains("//Main part of additive text started"))
+        bool isHtmlContainsMainPart = html.Contains("Main part of additive text started");
+        bool isHtmlContainsConsoleLogPart = html.Contains("const previousConsoleLog = console.log;");
+        bool isHtmlContainsConsoleErrorPart = html.Contains("const previousConsoleError = console.error;");
+        bool isHtmlContainsConsoleWarnPart = html.Contains("const previousConsoleWarn = console.warn;");
+
+        if (isHtmlContainsMainPart &&
+            (!_isNeedToDebugLog && isHtmlContainsConsoleLogPart ||
+            (!_isNeedToDebugError && isHtmlContainsConsoleErrorPart) ||
+            (!_isNeedToDebugWarn && isHtmlContainsConsoleWarnPart) ||
+            (!IsNeedToCreateChanges()))
+            )
         {
-            html = html.Remove(html.IndexOf("//Main part of additive text started"), html.IndexOf("//Main part of additive text finished") - html.IndexOf("//Main part of additive text started") + 38);
-            File.WriteAllText(report.summary.outputPath + "/index.html", html);
+            isHtmlContainsMainPart = false;
+            isHtmlContainsConsoleLogPart = false;
+            isHtmlContainsConsoleErrorPart = false;
+            isHtmlContainsConsoleWarnPart = false;
+
+            html = html.Remove(html.IndexOf("<!--Main part of additive text started-->") - 2, html.IndexOf("Main part of additive text finished") - html.IndexOf("Main part of additive text started") + 44);
+
+            if (!IsNeedToCreateChanges())
+            {
+                File.WriteAllText(report.summary.outputPath + "/index.html", html);
+
+                if (File.Exists(report.summary.outputPath + "/TemplateData/RoundButton.png"))
+                    File.Delete(report.summary.outputPath + "/TemplateData/RoundButton.png");
+
+                return;
+            }
         }
+        if (!isHtmlContainsMainPart)
+            html = html.Insert(html.IndexOf("</body>") - 3, _mainPartOfAdditiveText);
 
-        if (!IsNeedToCreateChanges())
-            return;
-
-        if (!html.Contains(@"id = ""console-catcher"""))
-            html = html.Insert(html.IndexOf("</body>"), _mainPartOfAdditiveText + "\n");
-
-        if (!html.Contains("const previousConsoleLog = console.log;"))
+        if (!isHtmlContainsConsoleLogPart)
             html = html.Insert(html.IndexOf("//console.log easy debug"), _isNeedToDebugLog ? _consoleLogAdditiveText : "");
 
-        if (!html.Contains("const previousConsoleError = console.error;"))
+        if (!isHtmlContainsConsoleErrorPart)
             html = html.Insert(html.IndexOf("//console.error easy debug"), _isNeedToDebugError ? _consoleErrorAdditiveText : "");
 
-        if (!html.Contains("const previousConsoleWarn = console.warn;"))
+        if (!isHtmlContainsConsoleWarnPart)
             html = html.Insert(html.IndexOf("//console.warn easy debug"), _isNeedToDebugWarn ? _consoleWarnAdditiveText : "");
 
-        File.WriteAllText(report.summary.outputPath + "/index.html", html);
+        if (html.GetHashCode() != previousHtmlHashCode)
+            File.WriteAllText(report.summary.outputPath + "/index.html", html);
 
         if (!File.Exists(report.summary.outputPath + "/TemplateData/RoundButton.png"))
             File.Copy(Application.dataPath + "/EasyConsoleDebuggingWebGL/Editor/Images/RoundButton.png", report.summary.outputPath + "/TemplateData/RoundButton.png");

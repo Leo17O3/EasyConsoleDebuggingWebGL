@@ -21,7 +21,7 @@ public class EasyConsoleDebuggingWebGLWindow : EditorWindow
         _isNeedToDebugWarn = EditorPrefs.GetBool("IsNeedToDebugWarn", false);
     }
 
-    private void OnDisable()
+    private void OnLostFocus()
     {
         EditorPrefs.SetBool("IsNeedToDebugLog", _isNeedToDebugLog);
         EditorPrefs.SetBool("IsNeedToDebugError", _isNeedToDebugError);
@@ -33,5 +33,6 @@ public class EasyConsoleDebuggingWebGLWindow : EditorWindow
         _isNeedToDebugLog = EditorGUILayout.Toggle("Is need to debug log", _isNeedToDebugLog);
         _isNeedToDebugError = EditorGUILayout.Toggle("Is need to debug error", _isNeedToDebugError);
         _isNeedToDebugWarn = EditorGUILayout.Toggle("Is need to debug warn", _isNeedToDebugWarn);
+
     }
 }
